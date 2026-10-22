@@ -65,15 +65,17 @@ class LamportClockTest {
         try {
             List<Future<long[]>> futures = new ArrayList<>();
             for (int t = 0; t < threads; t++) {
-                futures.add(pool.submit(() -> {
-                    long[] values = new long[ticksPerThread];
-                    ready.countDown();
-                    start.await(); // tous les threads partent en même temps
-                    for (int i = 0; i < ticksPerThread; i++) {
-                        values[i] = clock.tick();
-                    }
-                    return values;
-                }));
+                futures.add(
+                        pool.submit(
+                                () -> {
+                                    long[] values = new long[ticksPerThread];
+                                    ready.countDown();
+                                    start.await(); // tous les threads partent en même temps
+                                    for (int i = 0; i < ticksPerThread; i++) {
+                                        values[i] = clock.tick();
+                                    }
+                                    return values;
+                                }));
             }
             assertTrue(ready.await(10, TimeUnit.SECONDS));
             start.countDown();

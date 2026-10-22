@@ -6,12 +6,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * Horloge logique de Lamport, thread-safe.
  *
  * <ul>
- *   <li>Événement local : {@code time = time + 1}</li>
- *   <li>Réception d'un message portant {@code t} : {@code time = max(time, t) + 1}</li>
+ *   <li>Événement local : {@code time = time + 1}
+ *   <li>Réception d'un message portant {@code t} : {@code time = max(time, t) + 1}
  * </ul>
  *
- * Garantie : si l'événement a se produit avant b (au sens de Lamport), alors C(a) < C(b).
- * La réciproque est fausse : C(a) < C(b) n'implique pas que a précède causalement b.
+ * Garantie : si l'événement a se produit avant b (au sens de Lamport), alors C(a) < C(b). La
+ * réciproque est fausse : C(a) < C(b) n'implique pas que a précède causalement b.
  */
 public final class LamportClock {
 
