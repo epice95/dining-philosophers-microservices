@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/epice95/dining-philosophers-microservices/actions/workflows/ci.yml/badge.svg)
 
-Projet pédagogique (Master Informatique) : du comportement naïf à l'exclusion
+Projet web : du comportement naïf à l'exclusion
 mutuelle distribuée, puis calcul distribué sur graphes (Master-Worker).
 
 ## Prérequis
