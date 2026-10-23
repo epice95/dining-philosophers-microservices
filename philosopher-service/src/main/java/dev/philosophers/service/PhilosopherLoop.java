@@ -10,6 +10,7 @@ public final class PhilosopherLoop implements SmartLifecycle {
 
     private static final Logger LOG = LoggerFactory.getLogger(PhilosopherLoop.class);
     private static final long JOIN_TIMEOUT_MS = 5_000;
+    private static final long ERROR_BACKOFF_MS = 1_000;
 
     private final PhilosopherCycle cycle;
     private volatile Thread thread;
@@ -28,14 +29,24 @@ public final class PhilosopherLoop implements SmartLifecycle {
     }
 
     private void loop() {
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
                 cycle.runOnce();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (RuntimeException e) {
+                LOG.error("Philosopher cycle failed, retrying in {} ms", ERROR_BACKOFF_MS, e);
+                backoff();
             }
+        }
+    }
+
+    /** Petite pause après une erreur ; conserve le signal d'interruption s'il arrive. */
+    private static void backoff() {
+        try {
+            Thread.sleep(ERROR_BACKOFF_MS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } catch (RuntimeException e) {
-            LOG.error("Philosopher loop stopped by unexpected error", e);
         }
     }
 
