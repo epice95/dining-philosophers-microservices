@@ -12,6 +12,7 @@
 
     <modules>
         <module>common</module>
+        <module>philosopher-core</module>
     </modules>
 
     <properties>
