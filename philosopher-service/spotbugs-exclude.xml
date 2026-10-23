@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- RestClient est un client HTTP thread-safe injecté volontairement : faux positif. -->
+    <Match>
+        <Class name="dev.philosophers.service.HttpEventPublisher"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>
