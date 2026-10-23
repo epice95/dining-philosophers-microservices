@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dîner des philosophes - Monitor</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; }
+        table { border-collapse: collapse; width: 100%; max-width: 900px; }
+        th, td { border: 1px solid #bbb; padding: 6px 10px; text-align: left; }
+        tr.selectable { cursor: pointer; }
+        tr.selected { background: #fffde7; }
+        .badge { padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+        .THINKING { background: #e3f2fd; color: #0d47a1; }
+        .HUNGRY { background: #fff3e0; color: #e65100; }
+        .EATING { background: #e8f5e9; color: #1b5e20; }
+        .gap { color: #b71c1c; font-weight: 600; }
+        pre { background: #f5f5f5; color: #222; padding: 10px; max-width: 900px; overflow: auto; }
+        #status { color: #666; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+<h1>Dîner des philosophes</h1>
+<div id="status">Chargement...</div>
+<table>
+    <thead>
+    <tr>
+        <th>Philosophe</th><th>État</th><th>Dernière horloge</th>
+        <th>Événements</th><th>Horloges manquantes</th>
+    </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+</table>
+<h2 id="historyTitle">Historique</h2>
+<pre id="history">Cliquez sur un philosophe pour voir son historique.</pre>
+
+<script>
+    const rows = document.getElementById('rows');
+    const historyBox = document.getElementById('history');
+    const historyTitle = document.getElementById('historyTitle');
+    const statusBox = document.getElementById('status');
+    let selected = null;
+
+    function cell(text, className) {
+        const td = document.createElement('td');
+        if (className) {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text;
+            td.appendChild(span);
+        } else {
+            td.textContent = text;
+        }
+        return td;
+    }
+
+    function row(p) {
+        const tr = document.createElement('tr');
+        tr.className = 'selectable' + (p.id === selected ? ' selected' : '');
+        tr.appendChild(cell(p.id));
+        tr.appendChild(cell(p.state, 'badge ' + p.state));
+        tr.appendChild(cell(String(p.lastClock)));
+        tr.appendChild(cell(String(p.eventCount)));
+        const missing = p.missingClocks.length ? p.missingClocks.join(', ') : '-';
+        tr.appendChild(cell(missing, p.missingClocks.length ? 'gap' : ''));
+        tr.addEventListener('click', () => { selected = p.id; refresh(); });
+        return tr;
+    }
+
+    async function showHistory(id) {
+        const res = await fetch('/api/philosophers/' + encodeURIComponent(id) + '/history');
+        if (!res.ok) { return; }
+        const entries = await res.json();
+        historyTitle.textContent = 'Historique de ' + id + ' (trié par horloge)';
+        historyBox.textContent = entries
+            .map(e => String(e.clock).padStart(6) + '  ' + e.type.padEnd(7) + '  ' + e.emittedAt)
+            .join('\n');
+    }
+
+    async function refresh() {
+        try {
+            const res = await fetch('/api/state');
+            const data = await res.json();
+            rows.replaceChildren(...data.map(row));
+            statusBox.textContent = 'Mis à jour : ' + new Date().toLocaleTimeString();
+            if (selected) { await showHistory(selected); }
+        } catch (e) {
+            statusBox.textContent = 'Monitor injoignable';
+        }
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+</script>
+</body>
+</html>
