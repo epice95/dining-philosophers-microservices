@@ -23,7 +23,27 @@ public record PhilosopherProperties(
         @DefaultValue("2s") Duration connectTimeout,
         @DefaultValue("3s") Duration readTimeout) {
 
+    public PhilosopherProperties {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("philosopher.id must not be blank");
+        }
+        requireValidRange("think", thinkMin, thinkMax);
+        requireValidRange("eat", eatMin, eatMax);
+    }
+
     public long effectiveSeed() {
         return seed != null ? seed : id.hashCode();
+    }
+
+    private static void requireValidRange(String name, Duration min, Duration max) {
+        if (min.isNegative()) {
+            throw new IllegalArgumentException(
+                    "philosopher.%s-min must be >= 0 but was %s".formatted(name, min));
+        }
+        if (max.compareTo(min) < 0) {
+            throw new IllegalArgumentException(
+                    "philosopher.%s-max (%s) must be >= %s-min (%s)"
+                            .formatted(name, max, name, min));
+        }
     }
 }
