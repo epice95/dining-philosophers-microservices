@@ -5,4 +5,8 @@
         <Class name="dev.philosophers.service.HttpEventPublisher"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
+    <Match>
+        <Class name="dev.philosophers.service.graph.HttpWorkerClient"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
 </FindBugsFilter>
