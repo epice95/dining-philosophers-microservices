@@ -1,6 +1,8 @@
 package dev.philosophers.service.graph;
 
 import dev.philosophers.core.graph.DegreeJobCoordinator;
+import dev.philosophers.core.graph.ReachabilityCoordinator;
+import dev.philosophers.core.graph.ReachabilityWorkerClient;
 import dev.philosophers.core.graph.WorkerClient;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -24,10 +26,7 @@ class MasterConfig {
     @Bean
     DegreeJobCoordinator degreeJobCoordinator(
             GraphProperties props, ExecutorService graphExecutor) {
-        if (props.workers().isEmpty()) {
-            throw new IllegalStateException(
-                    "philosopher.graph.workers must list at least one worker URL");
-        }
+        requireWorkers(props);
         List<WorkerClient> workers =
                 props.workers().stream()
                         .map(
@@ -40,5 +39,29 @@ class MasterConfig {
                         .toList();
         return new DegreeJobCoordinator(
                 workers, graphExecutor, props.tasksPerWorker(), workers.size());
+    }
+
+    @Bean
+    ReachabilityCoordinator reachabilityCoordinator(
+            GraphProperties props, ExecutorService graphExecutor) {
+        requireWorkers(props);
+        List<ReachabilityWorkerClient> workers =
+                props.workers().stream()
+                        .map(
+                                url ->
+                                        (ReachabilityWorkerClient)
+                                                new HttpReachabilityWorkerClient(
+                                                        url,
+                                                        props.connectTimeout(),
+                                                        props.readTimeout()))
+                        .toList();
+        return new ReachabilityCoordinator(workers, graphExecutor);
+    }
+
+    private static void requireWorkers(GraphProperties props) {
+        if (props.workers().isEmpty()) {
+            throw new IllegalStateException(
+                    "philosopher.graph.workers must list at least one worker URL");
+        }
     }
 }

@@ -4,6 +4,7 @@ import dev.philosophers.core.graph.DegreeJobCoordinator;
 import dev.philosophers.core.graph.Edge;
 import dev.philosophers.core.graph.JobFailedException;
 import dev.philosophers.core.graph.RandomGraphGenerator;
+import dev.philosophers.core.graph.ReachabilityCoordinator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Point d'entrée du Master : lance le calcul des degrés d'un graphe. */
+/** Point d'entrée du Master : degrés des nœuds et accessibilité dans un graphe. */
 @RestController
 @ConditionalOnProperty(name = "philosopher.graph.role", havingValue = "master")
 public class MasterController {
@@ -37,10 +38,22 @@ public class MasterController {
     /** Résultat d'un benchmark : la somme des degrés doit valoir 2 x edges (contrôle). */
     public record BenchmarkResponse(int nodes, int edges, long elapsedMillis, long degreeSum) {}
 
-    private final DegreeJobCoordinator coordinator;
+    /** Réponse d'un calcul d'accessibilité. */
+    public record ReachResponse(
+            String jobId,
+            boolean reachable,
+            int levels,
+            int visited,
+            int releaseFailures,
+            long elapsedMillis) {}
 
-    public MasterController(DegreeJobCoordinator coordinator) {
+    private final DegreeJobCoordinator coordinator;
+    private final ReachabilityCoordinator reachability;
+
+    public MasterController(
+            DegreeJobCoordinator coordinator, ReachabilityCoordinator reachability) {
         this.coordinator = coordinator;
+        this.reachability = reachability;
     }
 
     @PostMapping("/graph/jobs")
@@ -72,6 +85,46 @@ public class MasterController {
             long elapsed = (System.nanoTime() - start) / 1_000_000;
             long total = degrees.values().stream().mapToLong(Integer::longValue).sum();
             return new BenchmarkResponse(nodes, edges, elapsed, total);
+        } catch (JobFailedException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Job interrupted", e);
+        }
+    }
+
+    /** Existe-t-il un chemin de source vers target dans le graphe orienté envoyé en corps ? */
+    @PostMapping("/graph/reach")
+    public ReachResponse reach(
+            @RequestParam("source") int source,
+            @RequestParam("target") int target,
+            @RequestBody JobRequest request) {
+        return reachability(request.edges(), source, target);
+    }
+
+    /** Même calcul sur un graphe aléatoire reproductible : sert au benchmark. */
+    @PostMapping("/graph/reach/benchmark")
+    public ReachResponse reachBenchmark(
+            @RequestParam("nodes") int nodes,
+            @RequestParam("edges") int edges,
+            @RequestParam(name = "seed", defaultValue = "42") long seed,
+            @RequestParam(name = "source", defaultValue = "0") int source,
+            @RequestParam("target") int target) {
+        return reachability(RandomGraphGenerator.generate(nodes, edges, seed), source, target);
+    }
+
+    private ReachResponse reachability(List<Edge> edges, int source, int target) {
+        String jobId = UUID.randomUUID().toString();
+        long start = System.nanoTime();
+        try {
+            ReachabilityCoordinator.Result result = reachability.run(jobId, edges, source, target);
+            return new ReachResponse(
+                    jobId,
+                    result.reachable(),
+                    result.levels(),
+                    result.visited(),
+                    result.releaseFailures(),
+                    (System.nanoTime() - start) / 1_000_000);
         } catch (JobFailedException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage(), e);
         } catch (InterruptedException e) {
