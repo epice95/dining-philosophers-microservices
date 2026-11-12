@@ -3,6 +3,7 @@ package dev.philosophers.service.graph;
 import dev.philosophers.core.graph.DegreeJobCoordinator;
 import dev.philosophers.core.graph.Edge;
 import dev.philosophers.core.graph.JobFailedException;
+import dev.philosophers.core.graph.RandomGraphGenerator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,6 +34,9 @@ public class MasterController {
         }
     }
 
+    /** Résultat d'un benchmark : la somme des degrés doit valoir 2 x edges (contrôle). */
+    public record BenchmarkResponse(int nodes, int edges, long elapsedMillis, long degreeSum) {}
+
     private final DegreeJobCoordinator coordinator;
 
     public MasterController(DegreeJobCoordinator coordinator) {
@@ -45,6 +50,28 @@ public class MasterController {
         try {
             Map<Integer, Integer> degrees = coordinator.run(jobId, request.edges());
             return new JobResponse(jobId, degrees, (System.nanoTime() - start) / 1_000_000);
+        } catch (JobFailedException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Job interrupted", e);
+        }
+    }
+
+    /** Génère un graphe aléatoire reproductible et en calcule les degrés : sert au benchmark. */
+    @PostMapping("/graph/benchmark")
+    public BenchmarkResponse benchmark(
+            @RequestParam("nodes") int nodes,
+            @RequestParam("edges") int edges,
+            @RequestParam(name = "seed", defaultValue = "42") long seed) {
+        List<Edge> graph = RandomGraphGenerator.generate(nodes, edges, seed);
+        String jobId = UUID.randomUUID().toString();
+        long start = System.nanoTime();
+        try {
+            Map<Integer, Integer> degrees = coordinator.run(jobId, graph);
+            long elapsed = (System.nanoTime() - start) / 1_000_000;
+            long total = degrees.values().stream().mapToLong(Integer::longValue).sum();
+            return new BenchmarkResponse(nodes, edges, elapsed, total);
         } catch (JobFailedException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage(), e);
         } catch (InterruptedException e) {
