@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  superviseur:
+    build: philosopher-core
+    container_name: superviseur
+    environment:
+      - SPRING_PROFILES_ACTIVE=superviseur
+      - SERVER_PORT=8080
+    ports:
+      - "8080:8080"
+    networks:
+      - philo-net
+
+  philosophe-0:
+    build: philosopher-core
+    container_name: philosophe-0
+    environment:
+      - SPRING_PROFILES_ACTIVE=philosophe
+      - PHILOSOPHE_ID=0
+      - SUPERVISEUR_URL=http://superviseur:8080
+    depends_on:
+      - superviseur
+    networks:
+      - philo-net
+
+  philosophe-1:
+    build: philosopher-core
+    container_name: philosophe-1
+    environment:
+      - SPRING_PROFILES_ACTIVE=philosophe
+      - PHILOSOPHE_ID=1
+      - SUPERVISEUR_URL=http://superviseur:8080
+    depends_on:
+      - superviseur
+    networks:
+      - philo-net
+
+  philosophe-2:
+    build: philosopher-core
+    container_name: philosophe-2
+    environment:
+      - SPRING_PROFILES_ACTIVE=philosophe
+      - PHILOSOPHE_ID=2
+      - SUPERVISEUR_URL=http://superviseur:8080
+    depends_on:
+      - superviseur
+    networks:
+      - philo-net
+
+  philosophe-3:
+    build: philosopher-core
+    container_name: philosophe-3
+    environment:
+      - SPRING_PROFILES_ACTIVE=philosophe
+      - PHILOSOPHE_ID=3
+      - SUPERVISEUR_URL=http://superviseur:8080
+    depends_on:
+      - superviseur
+    networks:
+      - philo-net
+
+  philosophe-4:
+    build: philosopher-core
+    container_name: philosophe-4
+    environment:
+      - SPRING_PROFILES_ACTIVE=philosophe
+      - PHILOSOPHE_ID=4
+      - SUPERVISEUR_URL=http://superviseur:8080
+    depends_on:
+      - superviseur
+    networks:
+      - philo-net
+
+networks:
+  philo-net:
+    driver: bridge
