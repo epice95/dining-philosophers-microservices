@@ -1,15 +1,16 @@
 package com.example.philosophesupervise.superviseur;
 
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
 
 @Service
 @Profile("superviseur") // Actif : --spring.profiles.active=superviseur
 public class SuperviseurService {
-    private final String[] etats = new String[]{"REFLECHIR", "REFLECHIR", "REFLECHIR", "REFLECHIR", "REFLECHIR"};
+    private final String[] etats =
+            new String[] {"REFLECHIR", "REFLECHIR", "REFLECHIR", "REFLECHIR", "REFLECHIR"};
     private final List<Integer> ordreService = Collections.synchronizedList(new ArrayList<>());
     private int philosophesTermines = 0;
 
