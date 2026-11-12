@@ -1,12 +1,12 @@
 package com.example.philosophesupervise.philosophe;
 
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import java.util.Map;
 
 @Service
 @Profile("philosophe") // Actif : --spring.profiles.active=philosophe
@@ -46,13 +46,14 @@ public class PhilosopheService {
         boolean accorde = false;
         while (!accorde) {
             try {
-                Boolean res = restTemplate.postForObject(
-                        superviseurUrl + "/repas/demander",
-                        Map.of("id", id),
-                        Boolean.class
-                );
+                Boolean res =
+                        restTemplate.postForObject(
+                                superviseurUrl + "/repas/demander",
+                                Map.of("id", id),
+                                Boolean.class);
                 accorde = Boolean.TRUE.equals(res);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             if (!accorde) pause(200, 400);
         }
@@ -60,14 +61,17 @@ public class PhilosopheService {
 
     private void libererAutorisation() {
         try {
-            restTemplate.postForObject(superviseurUrl + "/repas/liberer", Map.of("id", id), Void.class);
-        } catch (Exception ignored) {}
+            restTemplate.postForObject(
+                    superviseurUrl + "/repas/liberer", Map.of("id", id), Void.class);
+        } catch (Exception ignored) {
+        }
     }
 
     private void notifierFin() {
         try {
             restTemplate.postForObject(superviseurUrl + "/repas/fin", Map.of("id", id), Void.class);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private void afficher(String etat) {
@@ -77,6 +81,7 @@ public class PhilosopheService {
     private void pause(int min, int max) {
         try {
             Thread.sleep(min + (long) (Math.random() * (max - min)));
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException ignored) {
+        }
     }
 }
