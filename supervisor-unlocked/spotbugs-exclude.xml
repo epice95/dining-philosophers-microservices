@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Beans Spring injectés et partagés volontairement (table, fenêtre de course). -->
+    <Match>
+        <Class name="dev.philosophers.unlocked.UnlockedForkTable"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="dev.philosophers.unlocked.SupervisorController"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

@@ -42,6 +42,7 @@ Avant chaque push : `spotless:apply` puis `verify`. C'est ce que fait la CI.
 | `philosopher-service` | Microservice Spring Boot d'un philosophe. Selon `PHILOSOPHER_GRAPH_ROLE`, il peut aussi être Master ou Worker du calcul sur graphes |
 | `monitor-service` | Reçoit les événements des philosophes et expose le tableau de bord |
 | `Philosopher_supervised` | Philosophes sous la supervision d'un superviseur (partie 2) |
+| `supervisor-unlocked` | Superviseur qui attribue les deux fourchettes d'un coup, sans verrou (partie 3.1) |
 
 ## Avancement
 
@@ -105,6 +106,22 @@ Attention : `mvn clean` échoue sous Windows si un service tourne encore (jar ve
 
 - Un événement non livré au monitor n'est pas renvoyé : le monitor affiche une « horloge manquante ».
 - Redémarrer un philosophe sans redémarrer le monitor remet son horloge à 1 : ses nouveaux événements sont vus comme des doublons ou des conflits.
+
+## Partie 3.1 : superviseur sans verrou
+
+Le philosophe `i` demande ses **deux** fourchettes en une seule requête : `F_i` et `F_(i+1) mod N` (N = 5 par défaut). Le superviseur (`supervisor-unlocked`, port 8090) vérifie qu'elles sont libres, puis les réserve. Il n'y a **aucun verrou** : c'est voulu.
+
+```powershell
+.\mvnw.cmd -pl supervisor-unlocked -am package -DskipTests
+java -jar supervisor-unlocked\target\supervisor-unlocked-0.1.0-SNAPSHOT.jar
+```
+
+| Requête | Réponse |
+|---|---|
+| `POST /forks/{i}/acquire` | `true` si les deux fourchettes sont accordées, `false` sinon |
+| `POST /forks/{i}/release` | 200, rend les fourchettes de `i` |
+
+**Faille** : Tomcat traite chaque requête dans un thread. « Vérifier puis réserver » n'est pas atomique : deux voisins (P0 et P1 partagent `F1`) peuvent passer le test avant que l'un des deux réserve, et obtiennent tous deux `F1`. `UnlockedForkTableRaceTest` et `SupervisorConcurrencyTest` le reproduisent avec une barrière qui force cet entrelacement.
 
 ## Partie 5 : calcul distribué sur graphe (Master-Worker)
 
