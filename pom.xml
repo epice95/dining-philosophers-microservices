@@ -16,6 +16,7 @@
         <module>philosopher-service</module>
         <module>monitor-service</module>
         <module>Philosopher_supervised</module>
+        <module>supervisor-unlocked</module>
         <!-- <module>Philosopher_token</module> : à remettre quand le dossier sera ajouté au dépôt -->
     </modules>
 
