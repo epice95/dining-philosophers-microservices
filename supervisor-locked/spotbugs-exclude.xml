@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Le contrôleur garde la table injectée par Spring : partage voulu. -->
+    <Match>
+        <Class name="dev.philosophers.verrou.SuperviseurController"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

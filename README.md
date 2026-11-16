@@ -43,6 +43,7 @@ Avant chaque push : `spotless:apply` puis `verify`. C'est ce que fait la CI.
 | `monitor-service` | Reçoit les événements des philosophes et expose le tableau de bord |
 | `Philosopher_supervised` | Philosophes sous la supervision d'un superviseur (partie 2) |
 | `supervisor-unlocked` | Superviseur qui attribue les deux fourchettes d'un coup, sans verrou (partie 3.1) |
+| `supervisor-locked` | Même superviseur, section critique protégée par un verrou (partie 3.2) |
 
 ## Avancement
 
@@ -122,6 +123,17 @@ java -jar supervisor-unlocked\target\supervisor-unlocked-0.1.0-SNAPSHOT.jar
 | `POST /forks/{i}/release` | 200, rend les fourchettes de `i` |
 
 **Faille** : Tomcat traite chaque requête dans un thread. « Vérifier puis réserver » n'est pas atomique : deux voisins (P0 et P1 partagent `F1`) peuvent passer le test avant que l'un des deux réserve, et obtiennent tous deux `F1`. `UnlockedForkTableRaceTest` et `SupervisorConcurrencyTest` le reproduisent avec une barrière qui force cet entrelacement.
+
+## Partie 3.2 : superviseur avec verrou
+
+Même API que la 3.1, sur le port 8091 (`supervisor-locked`). La différence est dans `TableFourchettes` : « vérifier F_i et F_(i+1), puis réserver les deux ou refuser » se fait entre `verrou.lock()` et `verrou.unlock()` (un `ReentrantLock`). Un seul thread à la fois exécute cette section critique, donc deux voisins ne peuvent plus obtenir la même fourchette. `rendre` est aussi verrouillé, car il modifie le même tableau.
+
+```powershell
+.\mvnw.cmd -pl supervisor-locked -am package -DskipTests
+java -jar supervisor-locked\target\supervisor-locked-0.1.0-SNAPSHOT.jar
+```
+
+Tests : `TableFourchettesConcurrenceTest` lance P0 et P1 en même temps 1000 fois et vérifie qu'un seul des deux mange à chaque tour ; `SuperviseurHttpTest` fait la même chose en HTTP.
 
 ## Partie 5 : calcul distribué sur graphe (Master-Worker)
 
